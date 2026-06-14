@@ -36,7 +36,7 @@ class Noisy_MNIST(Dataset):
             targets = targets[50000:]
 
         elif self.split == 'test':
-            idx = torch.load(r'utils\Code_for_students\test_idx.tar')
+            idx = torch.load(r'CodeForStudents4\test_idx.tar')
             data = data[idx]
             targets = targets[idx]
 
@@ -92,7 +92,7 @@ def create_dataloaders(data_loc, batch_size,transform=None):
 # %% test if the dataloaders work
 if __name__ == "__main__":
     # define parameters
-    data_loc = 'AssignmenAssignment3\Code_for_students\DataLoc' #change the datalocation to something that  works for you
+    data_loc = 'CodeForStudents4\MNIST_dataloader.py' #change the datalocation to something that  works for you
     batch_size = 64
     # get dataloader
     train_loader, test_loader, val_loader = create_dataloaders(data_loc, batch_size)
