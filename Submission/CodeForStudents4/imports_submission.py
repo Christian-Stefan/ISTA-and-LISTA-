@@ -20,5 +20,5 @@ import os
 import numpy as np
 from torch.utils.data import Dataset, DataLoader
 import tqdm
-from PIL import image
+from PIL import Image
 from torch.nn import functional as F

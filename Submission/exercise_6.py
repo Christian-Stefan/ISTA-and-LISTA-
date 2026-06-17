@@ -165,7 +165,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Data panel, holding enviornment variables, experimental settings and some other parameters")
     parser.add_argument("--load",action="store_true", help="Load saved results and generate figures without retraining.")
     parser.add_argument("--Proxi_LR", type=dict, default={'prox_net':1e-4, 'mus':1e-2}, help="Dual-learning rateo optimizer, one dedicated to prox_net parameters and the other dedicated to mu")
-    parser.add_argument("--ConvISTA_ARCH", type=ast.literal_eval, default=[1, 3, [1, 4, 8, 4, 1]], help="List entailing integers (, the first one representing the stride and the second the kernel size) and a list standing out for the width ConvISTA should adopt")
+    parser.add_argument("--ConvISTA_ARCH", type=ast.literal_eval, default=[1, 3, [1, 8, 16, 8, 1]], help="List entailing integers (, the first one representing the stride and the second the kernel size) and a list standing out for the width ConvISTA should adopt")
     parser.add_argument("--EPOCHS", type=int, default=10, help="Number of epochs (not fixed)")
     parser.add_argument("--BATCH_SIZE", type=int, default=64, help="Number of batches (not fixed)")
     parser.add_argument("--result_param_path", type=str, default='CodeForStudents4\Results\checkpoints\proxnet_best.pth',help="Path leading to the best parameters of ProxiNet")
@@ -181,8 +181,8 @@ if __name__ == "__main__":
         #TODO Written answer
 
         print("====================== Loading Exercise 4.6.b) =================================")
-        img = image.open("CodeForStudents4\Results\Training_Test_Loss.jpg")
-        img.show()
+        # img = Image.open("CodeForStudents4\Results\Training_Test_Loss.jpg")
+        # img.show()
         
 
         print("====================== Loading Exercise 4.6.c) =================================")

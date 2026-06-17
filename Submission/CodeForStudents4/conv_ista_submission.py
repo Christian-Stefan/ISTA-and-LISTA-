@@ -28,11 +28,10 @@ class ConvISTA(nn.Module):
                                           out_channels=width[layer+1], 
                                           kernel_size=self.ken_size[layer],
                                           padding=self.pading[layer]))
-            self.NETWORK.append(nn.BatchNorm2d(width[layer+1]))
             if layer != layers-1:
                 self.NETWORK.append(nn.Tanh())
             else: 
-                self.NETWORK.append(nn.Tanh())
+                self.NETWORK.append(nn.ReLU())
 
 
     def forward(self, x):
