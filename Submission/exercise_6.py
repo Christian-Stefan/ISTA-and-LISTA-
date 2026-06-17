@@ -34,7 +34,7 @@ def training(BATCH_SIZE,STRIDE,KERNEL_SIZE,WIDTH,PROXI_LR_NET,PROXI_LR_MUS,EPOCH
         best_val_loss = float('inf') # Initialize to infinity so the first epoch always saves
         os.makedirs(r'CodeForStudents4\Results\checkpoints', exist_ok=True) # Create a directory for weights;
 
-        for epoch in range(epochs):
+        for epoch in range(10):
             # 2---------###-------##\
             # 2.Model Training Phase###\
             # 2---------###-----------##\
@@ -49,9 +49,9 @@ def training(BATCH_SIZE,STRIDE,KERNEL_SIZE,WIDTH,PROXI_LR_NET,PROXI_LR_MUS,EPOCH
                 # 2.2 Zero out the gradients residuals possibly located in the cache memory 
                 optim.zero_grad()
                 # 2.3 Forward pass
-                _train_rec = model(kspace, M)
+                _train_rec, _ = model(kspace, M)
                 # 2.4 Calculate Loss (... unsqueeze gt to match channel dims)
-                _train_loss, _ = loss_fn(_train_rec, gt.unsqueeze(1))
+                _train_loss = loss_fn(_train_rec, gt.unsqueeze(1))
                 # 2.5 Backprop & Step
                 _train_loss.backward()
                 optim.step()
@@ -116,26 +116,34 @@ def training(BATCH_SIZE,STRIDE,KERNEL_SIZE,WIDTH,PROXI_LR_NET,PROXI_LR_MUS,EPOCH
 
         return model
 
-def display_results(model, path, MODE, DATA)->None:
-    # 1. Load the weighs stored at location indicated by path 
-    test_MRI = DATA
-    weights = torch.load(path,map_location=torch.device('cpu'), weights_only=True) # LOADING weights
+def display_results(model, path, MODE, DATA, device=None) -> None:
+    # 1. Determine device and load weights directly to it
+    if device is None:
+        device = torch.device('cpu')
+        
+    weights = torch.load(path, map_location=device, weights_only=True) # LOADING weights
+    model.to(device) # Ensure model is on the correct device
     model.load_state_dict(weights) # INJECTING weights
+    
     ###### === ########
     # Evaluation Mode #
     ###### === ########
     model.eval() 
     with torch.no_grad():
         for idx, (kspace, M, gt) in enumerate(tqdm.tqdm(test_MRI)):
+            # Move all inputs to the exact same device
+            kspace = kspace.to(device)
+            M = M.to(device)
+            
             if MODE == 'ProxiNet':
                 final_output, partial_output = model(kspace, M)
             else:
                 pass
 
+        # 2. Extract tensors to CPU for plotting, handling potential gradient/device histories
         partial_rec = torch.abs(partial_output).squeeze().cpu().numpy()    
-        final_rec = final_output.squeeze()
-        clean=gt.squeeze()
-
+        final_rec = final_output.squeeze().cpu().numpy()
+        clean = gt.squeeze().cpu().numpy()
 
         # 3. Displaying required results
         fig, axes = PLT.subplots(nrows=3, ncols=10, figsize=(20, 6))
@@ -215,7 +223,7 @@ if __name__ == "__main__":
         print("====================== Loading Exercise 4.6.c) =================================")
         base_convnet = ConvISTA( pading='same',stride=arg.ConvISTA_ARCH[0], kernel_size=arg.ConvISTA_ARCH[1], width=arg.ConvISTA_ARCH[2])
         model = ProxNet(conv_net=base_convnet, num_iterations=5)
-        display_results(model = model, path=arg.result_param_path, MODE='ProxiNet', DATA=test_MRI)
+        display_results(model = model, path=arg.result_param_path, MODE='ProxiNet', DATA=test_MRI, device=True)
 
         print("====================== Loading Exercise 4.6.d) =================================")
         model.load_state_dict(torch.load('CodeForStudents4/Results/checkpoints/proxnet_best.pth', map_location=torch.device('cpu'), weights_only=True))
