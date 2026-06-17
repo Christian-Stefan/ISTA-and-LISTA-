@@ -132,16 +132,16 @@ def display_results(model, path, MODE, DATA)->None:
             else:
                 pass
 
-        partial_rec = partial_output.squeeze()
+        partial_rec = torch.abs(partial_output).squeeze().cpu().numpy()    
         final_rec = final_output.squeeze()
         clean=gt.squeeze()
 
 
         # 3. Displaying required results
-        fig, axes = PLT.subplots(nrows=3, ncols=10, figsize=(25, 6))
+        fig, axes = PLT.subplots(nrows=3, ncols=10, figsize=(20, 6))
         for i in range(10):
             # ROW 1: Partial Rec 
-            axes[0, i].imshow(torch.abs(partial_rec[i]), cmap='gray', vmin=-1, vmax=1)
+            axes[0, i].imshow(partial_rec[i], cmap='gray', vmin=-1, vmax=1)
             axes[0, i].axis('off')
             if i == 0: axes[0, i].set_title("Partial reconstructions", fontsize=10, fontweight='bold', pad=10)
             
@@ -156,7 +156,7 @@ def display_results(model, path, MODE, DATA)->None:
             if i == 0: axes[2, i].set_title("Clean Truth", fontsize=10, fontweight='bold', pad=10)
 
     PLT.tight_layout()
-    PLT.savefig(r'CodeForStudents4\Results\ConvNetOutput.jpg')
+    PLT.savefig(r'CodeForStudents4\Results\ConvNetOutput.jpg', dpi=300, bbox_inches='tight')
     PLT.show()
 
 
@@ -218,10 +218,86 @@ if __name__ == "__main__":
         display_results(model = model, path=arg.result_param_path, MODE='ProxiNet', DATA=test_MRI)
 
         print("====================== Loading Exercise 4.6.d) =================================")
+        model.load_state_dict(torch.load('CodeForStudents4/Results/checkpoints/proxnet_best.pth', map_location=torch.device('cpu'), weights_only=True))
+        model.eval()
+
+        loss_fn = nn.MSELoss()
+        total_test_mse = 0.0
+
+        # 4. Run inference on the entire test set without tracking gradients (saves memory/time)
+        with torch.no_grad():
+            for kspace, M, gt in tqdm.tqdm(test_MRI, desc="Calculating Final Test MSE"):
+                kspace = kspace
+                M = M
+                gt = gt
+                reconstruction, _ = model(kspace, M)
+                batch_mse = loss_fn(reconstruction, gt.unsqueeze(1))
+                total_test_mse += batch_mse.item()
 
 
-
+        final_mse = total_test_mse / len(test_MRI)
+        print(f"==================================================")
+        print(f"Final Numerical Estimate (Test Set MSE): {final_mse:.6f}")
+        print(f"==================================================")
         print("====================== Loading Exercise 4.6.e) =================================")
+   
+        # 1. Initialize and load your standalone ConvNet from Exercise 5
+        conv_model = ConvISTA(pading='same', stride=1, kernel_size=3, width=[1, 8, 16, 8, 1])
+        # Make sure to point this to the correct weights file for your standalone ConvNet!
+        model.load_state_dict(torch.load('CodeForStudents4/Results/checkpoints/proxnet_best.pth', map_location=torch.device('cpu'), weights_only=True))
+        conv_model.eval()
+
+        loss_fn = nn.MSELoss()
+        standalone_mse_total = 0.0
+        fair_mse_total = 0.0
+
+        with torch.no_grad():
+            for kspace, M, gt in tqdm.tqdm(test_MRI, desc="Evaluating Fair ConvNet"):
+                kspace = kspace
+                M = M
+                gt = gt
+                
+                # Initial zero-filled image
+                x0_complex = get_accelerated_MRI(kspace * M)
+                x_abs = torch.abs(x0_complex).to(torch.float32)
+                
+                # ==========================================
+                # A. Standard ConvNet (The Unfair Baseline)
+                # ==========================================
+                conv_pred_mag = conv_model(x_abs)
+                
+                standalone_mse = loss_fn(conv_pred_mag, gt.unsqueeze(1))
+                standalone_mse_total += standalone_mse.item()
+                
+                # ==========================================
+                # B. Fair ConvNet (Injecting Physics / DC)
+                # ==========================================
+                # 1. Recombine the ConvNet magnitude with the initial phase
+                phase = torch.angle(x0_complex)
+                pred_complex = conv_pred_mag.squeeze(1) * torch.exp(1j * phase)
+                
+                # 2. Forward Physics: move to k-space
+                k_pred = get_k_space(pred_complex)
+                
+                # 3. Data Consistency: Force the prediction to perfectly match 
+                # the raw scanner measurements where the mask allows
+                k_fair = k_pred - 1.0 * M * (k_pred - kspace * M)
+                
+                # 4. Inverse Physics: back to the image domain
+                fair_pred_complex = get_accelerated_MRI(k_fair)
+                fair_pred_mag = torch.abs(fair_pred_complex).unsqueeze(1)
+                
+                fair_mse = loss_fn(fair_pred_mag, gt.unsqueeze(1))
+                fair_mse_total += fair_mse.item()
+
+        # Calculate final averages
+        avg_standalone_mse = standalone_mse_total / len(test_MRI)
+        avg_fair_mse = fair_mse_total / len(test_MRI)
+
+        print(f"==================================================")
+        print(f"1. Standalone ConvNet MSE (Unfair): {avg_standalone_mse:.6f}")
+        print(f"2. ConvNet + Data Consistency MSE (Fairer): {avg_fair_mse:.6f}")
+        print(f"==================================================")
 
     else:
         print("==================DISCLAIMER==================\n"\
@@ -265,8 +341,84 @@ if __name__ == "__main__":
         display_results(model = model, path=arg.result_param_path, MODE='ProxiNet', DATA=test_MRI)
 
         print("====================== Loading Exercise 4.6.d) =================================")
+        model.eval()
 
+        loss_fn = nn.MSELoss()
+        total_test_mse = 0.0
+
+        # 4. Run inference on the entire test set without tracking gradients (saves memory/time)
+        with torch.no_grad():
+            for kspace, M, gt in tqdm.tqdm(test_MRI, desc="Calculating Final Test MSE"):
+                kspace = kspace
+                M = M
+                gt = gt
+                reconstruction, _ = model(kspace, M)
+                batch_mse = loss_fn(reconstruction, gt.unsqueeze(1))
+                total_test_mse += batch_mse.item()
+
+
+        final_mse = total_test_mse / len(test_MRI)
+        print(f"==================================================")
+        print(f"Final Numerical Estimate (Test Set MSE): {final_mse:.6f}")
+        print(f"==================================================")
 
 
         print("====================== Loading Exercise 4.6.e) =================================")
+         # 1. Initialize and load your standalone ConvNet from Exercise 5
+        conv_model = ConvISTA(pading='same', stride=1, kernel_size=3, width=[1, 8, 16, 8, 1])
+        # Make sure to point this to the correct weights file for your standalone ConvNet!
+        model.load_state_dict(torch.load('CodeForStudents4/Results/checkpoints/proxnet_best.pth', map_location=torch.device('cpu'), weights_only=True))
+        conv_model.eval()
+
+        loss_fn = nn.MSELoss()
+        standalone_mse_total = 0.0
+        fair_mse_total = 0.0
+
+        with torch.no_grad():
+            for kspace, M, gt in tqdm.tqdm(test_MRI, desc="Evaluating Fair ConvNet"):
+                kspace = kspace
+                M = M
+                gt = gt
+                
+                # Initial zero-filled image
+                x0_complex = get_accelerated_MRI(kspace * M)
+                x_abs = torch.abs(x0_complex).to(torch.float32)
+                
+                # ==========================================
+                # A. Standard ConvNet (The Unfair Baseline)
+                # ==========================================
+                conv_pred_mag = conv_model(x_abs)
+                
+                standalone_mse = loss_fn(conv_pred_mag, gt.unsqueeze(1))
+                standalone_mse_total += standalone_mse.item()
+                
+                # ==========================================
+                # B. Fair ConvNet (Injecting Physics / DC)
+                # ==========================================
+                # 1. Recombine the ConvNet magnitude with the initial phase
+                phase = torch.angle(x0_complex)
+                pred_complex = conv_pred_mag.squeeze(1) * torch.exp(1j * phase)
+                
+                # 2. Forward Physics: move to k-space
+                k_pred = get_k_space(pred_complex)
+                
+                # 3. Data Consistency: Force the prediction to perfectly match 
+                # the raw scanner measurements where the mask allows
+                k_fair = k_pred - 1.0 * M * (k_pred - kspace * M)
+                
+                # 4. Inverse Physics: back to the image domain
+                fair_pred_complex = get_accelerated_MRI(k_fair)
+                fair_pred_mag = torch.abs(fair_pred_complex).unsqueeze(1)
+                
+                fair_mse = loss_fn(fair_pred_mag, gt.unsqueeze(1))
+                fair_mse_total += fair_mse.item()
+
+        # Calculate final averages
+        avg_standalone_mse = standalone_mse_total / len(test_MRI)
+        avg_fair_mse = fair_mse_total / len(test_MRI)
+
+        print(f"==================================================")
+        print(f"1. Standalone ConvNet MSE (Unfair): {avg_standalone_mse:.6f}")
+        print(f"2. ConvNet + Data Consistency MSE (Fairer): {avg_fair_mse:.6f}")
+        print(f"==================================================")
 
