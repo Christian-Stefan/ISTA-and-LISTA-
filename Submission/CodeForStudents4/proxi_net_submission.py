@@ -15,10 +15,9 @@ class ProxNet(nn.Module):
     def forward(self, kspace: torch.Tensor, M: torch.Tensor):
         # 3.1 Initial zero-filled reconstruction (Phi^H y) mimicking z_0 = x_t = 0
         x0_complex = get_accelerated_MRI(kspace * M)
-        # 3.1 Extract and save the original phase to keep the physics intact
-        phase = torch.angle(x0_complex)
         # 3.2 Initialize x_t as the real-valued magnitude image for the ConvNet
         x_t = torch.abs(x0_complex).to(torch.float32)
+
         for t in range(self.num_iterations):
             # 3.3 Enforce the constraint: mu must be between 0 and 1
             mu = torch.clamp(self.mus[t], 0.0, 1.0)
@@ -26,8 +25,10 @@ class ProxNet(nn.Module):
             # =================@@@==================
             # 4: Data Consistency (The Physics 'g')
             # =================@@@==================
+            # 4.0 Extract and save the original phase to keep the physics intact
+            currentphase = torch.angle(x0_complex) if t==0 else torch.angle(x_dc_complex)
             # 4.1. Multiply the real image by the phase to restore complex numbers
-            x_t_complex = x_t.squeeze(1) * torch.exp(1j * phase)
+            x_t_complex = x_t.squeeze(1) * torch.exp(1j * currentphase)
             # 4.2. Forward physics: Image domain to k-space (Phi)
             k_t = get_k_space(x_t_complex)
             # 4.3. Gradient step in k-space: k_t - mu * M * (k_t - y)

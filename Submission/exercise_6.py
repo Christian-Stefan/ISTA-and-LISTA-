@@ -208,7 +208,7 @@ if __name__ == "__main__":
         root.destroy()
 
         print("====================== Loading Exercise 4.6.b) =================================")
-        img = Image.open("CodeForStudents4\Results\Training_Test_Loss.jpg")
+        img = Image.open("CodeForStudents4\Results\TrainingandTestLossAcrossEpochs.png")
         img.show()
         
 
