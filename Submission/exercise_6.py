@@ -28,7 +28,7 @@ def training(BATCH_SIZE,STRIDE,KERNEL_SIZE,WIDTH,PROXI_LR_NET,PROXI_LR_MUS,EPOCH
         # ... Scheduler configurations
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optim,mode="min",factor=0.5,patience=2,min_lr=1e-6)
         # 1.5 Experiment configuration and creation of history holders
-        epochs:int = EPOCHS-5
+        epochs:int = EPOCHS
         train_loss:list = []
         val_loss:list = []
         best_val_loss = float('inf') # Initialize to infinity so the first epoch always saves
@@ -119,7 +119,7 @@ def training(BATCH_SIZE,STRIDE,KERNEL_SIZE,WIDTH,PROXI_LR_NET,PROXI_LR_MUS,EPOCH
 def display_results(model, path, MODE, DATA)->None:
     # 1. Load the weighs stored at location indicated by path 
     test_MRI = DATA
-    weights = torch.load(path, weights_only=True) # LOADING weights
+    weights = torch.load(path,map_location=torch.device('cpu'), weights_only=True) # LOADING weights
     model.load_state_dict(weights) # INJECTING weights
     ###### === ########
     # Evaluation Mode #
@@ -178,11 +178,38 @@ if __name__ == "__main__":
         print("Python script .py is followed by argument --load therefore all the results will be generated based on existing/pre-loaded weights\n" \
         "All the weights were stored beforehand in CodeForStudents4\Results")
         print("====================== Loading Exercise 4.6.a) =================================")
-        #TODO Written answer
+        answer_text = (
+            "LISTA and Neural PGD both unfold iterative optimization loops into neural networks but differ "
+            "fundamentally in what they parameterize. LISTA dismantles the explicit connection to real-world "
+            "acquisition physics. As seen in (1) it replaces the mathematical measurement matrices with trainable "
+            "weights to learn the physical mapping directly from data. Consequently, LISTA relies on a basic, "
+            "mathematically rigid shrinking rule lacking spatial awareness.\n\n"
+            
+            "Works, such as [1] show that the Neural PGD takes the inverse approach by parameterizing the shrinking "
+            "function instead of the physics. Within the context as defined by PGD the data consistency step remains "
+            "untouched/hardcoded. The proximal step is replaced by a spatially aware Convolutional Neural Network "
+            "as shown in (2). Thus, the network learns a smart shrinking rule to recognize complex anatomical structures "
+            "and remove aliasing artifacts. Another architectural choice... translates to how PGD employs a weighted "
+            "training scheme (β) that actively penalizes intermediate iterations if they deviate from the raw physical domain.\n\n"
+            
+            "Because LISTA replaces physical matrices with learned weights, it typically relies on a standard end-to-end loss, "
+            "lacking the ability to strictly enforce known physical consistency at every intermediate step.\n\n"
+            
+            "Neural PGD is highly appropriate for accelerated MRI due to its computational feasibility. Hardcoding the "
+            "Fourier transforms prevents the severe overfitting associated with learning massive global physics matrices. "
+            "It frees the network's capacity to focus exclusively on learning complex non-linear human anatomy priors. "
+            "Finally, enforcing strict data consistency guarantees the reconstructions remain physically plausible."
+        )
+
+        # Initialize a hidden main window, then trigger the popup
+        root = tk.Tk()
+        root.withdraw() 
+        messagebox.showinfo("Exercise 4.6.a Answer", answer_text)
+        root.destroy()
 
         print("====================== Loading Exercise 4.6.b) =================================")
-        # img = Image.open("CodeForStudents4\Results\Training_Test_Loss.jpg")
-        # img.show()
+        img = Image.open("CodeForStudents4\Results\Training_Test_Loss.jpg")
+        img.show()
         
 
         print("====================== Loading Exercise 4.6.c) =================================")
@@ -202,7 +229,34 @@ if __name__ == "__main__":
         "After training, all the weights will be stored in CodeForStudents4\Results")
 
         print("====================== Loading Exercise 4.6.a) =================================")
-        #TODO - Written answer
+        answer_text = (
+            "LISTA and Neural PGD both unfold iterative optimization loops into neural networks but differ "
+            "fundamentally in what they parameterize. LISTA dismantles the explicit connection to real-world "
+            "acquisition physics. As seen in (1) it replaces the mathematical measurement matrices with trainable "
+            "weights to learn the physical mapping directly from data. Consequently, LISTA relies on a basic, "
+            "mathematically rigid shrinking rule lacking spatial awareness.\n\n"
+            
+            "Works, such as [1] show that the Neural PGD takes the inverse approach by parameterizing the shrinking "
+            "function instead of the physics. Within the context as defined by PGD the data consistency step remains "
+            "untouched/hardcoded. The proximal step is replaced by a spatially aware Convolutional Neural Network "
+            "as shown in (2). Thus, the network learns a smart shrinking rule to recognize complex anatomical structures "
+            "and remove aliasing artifacts. Another architectural choice... translates to how PGD employs a weighted "
+            "training scheme (β) that actively penalizes intermediate iterations if they deviate from the raw physical domain.\n\n"
+            
+            "Because LISTA replaces physical matrices with learned weights, it typically relies on a standard end-to-end loss, "
+            "lacking the ability to strictly enforce known physical consistency at every intermediate step.\n\n"
+            
+            "Neural PGD is highly appropriate for accelerated MRI due to its computational feasibility. Hardcoding the "
+            "Fourier transforms prevents the severe overfitting associated with learning massive global physics matrices. "
+            "It frees the network's capacity to focus exclusively on learning complex non-linear human anatomy priors. "
+            "Finally, enforcing strict data consistency guarantees the reconstructions remain physically plausible."
+        )
+
+        # Initialize a hidden main window, then trigger the popup
+        root = tk.Tk()
+        root.withdraw() 
+        messagebox.showinfo("Exercise 4.6.a Answer", answer_text)
+        root.destroy()
 
         print("====================== Loading Exercise 4.6.b) =================================")
         model = training(arg.BATCH_SIZE,arg.ConvISTA_ARCH[0],arg.ConvISTA_ARCH[1],arg.ConvISTA_ARCH[2],arg.Proxi_LR['prox_net'],arg.Proxi_LR['mus'],arg.EPOCHS)
