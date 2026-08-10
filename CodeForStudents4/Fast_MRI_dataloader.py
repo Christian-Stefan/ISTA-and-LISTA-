@@ -50,12 +50,8 @@ def create_dataloaders(data_loc, batch_size):
 
 # %% test if the dataloaders work
 if __name__ == "__main__":
-    import os
     # define parameters
-    data_path = r'CodeForStudents4\DataLoc'
-    print("Path exists:", os.path.exists(data_path))
-    print("Absolute path:", os.path.abspath(data_path))
-    data_loc = r'CodeForStudents4\Fast_MRI_Knee' #change the datalocation to something that works for you
+    data_loc = 'Fast_MRI_Knee' #change the datalocation to something that works for you
     batch_size = 2
     
     train_loader, test_loader = create_dataloaders(data_loc, batch_size)
