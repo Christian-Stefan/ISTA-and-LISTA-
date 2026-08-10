@@ -34,3 +34,14 @@ These improvements are better illustrated by the figures below, tracking the los
 
 ## Next Steps & Suggestions
 Have an idea on how to further optimize the data consistency steps, increase the unfolded iterations ($K > 5$), or tweak the weighting factor ($\beta$) for better high-frequency detail? Feel free to open an issue or submit a pull request!
+
+## Code Execution
+To get direct access to the models and their corresponding outputs (e.g., visuals such as charts and illustrations), clone the repository and execute the `exercise_6.py` Python script within your IDE terminal. 
+
+Programmatically, the execution workflow is as follows:
+
+```bash
+cd Reconstructing-MRI-with-Machine-Learning-for-Signal-Processing-School-assignment
+py -m pip install -r requirements.txt
+py exercise_6.py --load
+```
